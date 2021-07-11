@@ -2,13 +2,17 @@
 
 namespace App\Entity;
 
+use Symfony\Component\Validator\Constraints as Assert;
 use App\Repository\EmployeeRepository;
 use Doctrine\ORM\Mapping as ORM;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
+use JsonSerializable;
 
 /**
  * @ORM\Entity(repositoryClass=EmployeeRepository::class)
  */
-class Employee
+class Employee implements JsonSerializable
 {
     /**
      * @ORM\Id
@@ -18,27 +22,27 @@ class Employee
     private $id;
 
     /**
-     * @ORM\Column(type="string", length=255)
+     * @ORM\Column(length=255)
      */
-    private $firstname;
+    protected $firstname;
 
     /**
-     * @ORM\Column(type="string", length=255)
+     * @ORM\Column(length=255)
      */
     private $lastname;
 
     /**
-     * @ORM\Column(type="string", length=255)
+     * @ORM\Column(length=255)
      */
     private $email;
 
     /**
-     * @ORM\Column(type="string", length=255, nullable=true)
+     * @ORM\Column(length=255, nullable=true)
      */
     private $phone;
 
     /**
-     * @ORM\Column(type="string", length=255)
+     * @ORM\Column(length=255)
      */
     private $password;
 
@@ -49,9 +53,15 @@ class Employee
     private $company;
 
     /**
-     * @ORM\ManyToOne(targetEntity=Role::class, inversedBy="employees")
+     * @ORM\ManyToMany(targetEntity=Role::class, inversedBy="employees")
      */
-    private $role;
+    private $roles;
+
+    public function __construct()
+    {
+        $this->roles = new ArrayCollection();
+
+    }
 
     public function getId(): ?int
     {
@@ -130,15 +140,48 @@ class Employee
         return $this;
     }
 
-    public function getRole(): ?Role
+    public function getRoles(): Collection
     {
-        return $this->role;
+        return $this->roles;
     }
 
-    public function setRole(?Role $role): self
+    public function addRole(Role $role): self
     {
-        $this->role = $role;
+        if (!$this->roles->contains($role)) {
+            $this->roles[] = $role;
+            $role->addEmployee($this);
+        }
 
         return $this;
+    }
+
+    public function removeRole(Role $role): self
+    {
+        if ($this->roles->contains($role)) {
+            $this->roles->removeElement($role);
+            $role->removeEmployee($this);
+        }
+
+        return $this;
+    }
+
+    public function clearRoles(): self 
+    {
+        $this->roles->clear();
+
+        return $this;
+    }
+
+    public function jsonSerialize()
+    {
+        return [
+            "id" => $this->id,
+            "firstname" => $this->firstname,
+            "lastname" => $this->lastname,
+            "company" => $this->company,
+            "roles" => $this->roles,
+            "email" => $this->email,
+            "phone" => $this->phone,
+        ];
     }
 }

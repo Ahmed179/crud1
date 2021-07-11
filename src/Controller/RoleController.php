@@ -3,6 +3,8 @@
 namespace App\Controller;
 
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
+use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\Request;
@@ -15,9 +17,10 @@ class RoleController extends AbstractController
     private $manager;
     private $repository;
 
-    public function __construct(EntityManagerInterface $manager) {
+    public function __construct(EntityManagerInterface $manager, ValidatorInterface $validator) {
         $this->manager    = $manager;
         $this->repository = $manager->getRepository(Role::class);
+        $this->validator  = $validator;
     }
 
     /**
@@ -31,8 +34,16 @@ class RoleController extends AbstractController
     /**
      * @Route("/role", name="create-role", methods={"POST"})
      */
-    public function createRole(Request $request): JsonResponse {
+    public function createRole(Request $request) {
         $data = json_decode($request->getContent(), true);
+
+        $constraints = new Assert\Collection([
+            'name' => [new Assert\NotBlank()],
+        ]);
+
+        $errors = $this->validator->validate($data, $constraints);
+        if (count($errors) > 0) return new Response($errors);
+
         $name = $data['name'];
         
         $role = new Role();
@@ -47,8 +58,16 @@ class RoleController extends AbstractController
      /**
      * @Route("/role/{id}", name="update-role", methods={"PUT"})
      */
-    public function updateRole(Request $request, $id): JsonResponse {
+    public function updateRole(Request $request, $id) {
         $data = json_decode($request->getContent(), true);
+
+        $constraints = new Assert\Collection([
+            'name' => [new Assert\NotBlank()],
+        ]);
+
+        $errors = $this->validator->validate($data, $constraints);
+        if (count($errors) > 0) return new Response($errors);
+
         $name = $data['name'];
 
         $role = $this->repository->findOneBy(['id' => $id]);

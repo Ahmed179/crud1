@@ -3,6 +3,8 @@
 namespace App\Controller;
 
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
+use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\Request;
@@ -14,10 +16,12 @@ class CompanyController extends AbstractController
 {
     private $manager;
     private $repository;
-
-    public function __construct(EntityManagerInterface $manager) {
+    private $validator;
+    
+    public function __construct(EntityManagerInterface $manager, ValidatorInterface $validator) {
         $this->manager    = $manager;
         $this->repository = $manager->getRepository(Company::class);
+        $this->validator  = $validator;
     }
 
     /**
@@ -31,8 +35,18 @@ class CompanyController extends AbstractController
     /**
      * @Route("/company", name="create-company", methods={"POST"})
      */
-    public function createCompany(Request $request): JsonResponse {
+    public function createCompany(Request $request) {
         $data = json_decode($request->getContent(), true);
+
+        $constraints = new Assert\Collection([
+            'name' => [new Assert\NotBlank()],
+            'address' => [new Assert\NotBlank()],
+        
+        ]);
+
+        $errors = $this->validator->validate($data, $constraints);
+        if (count($errors) > 0) return new Response($errors);
+
         $name    = $data['name'];
         $address = $data['address'];
 
@@ -48,8 +62,17 @@ class CompanyController extends AbstractController
      /**
      * @Route("/company/{id}", name="update-company", methods={"PUT"})
      */
-    public function updateCompany(Request $request, $id): JsonResponse {
+    public function updateCompany(Request $request, $id) {
         $data = json_decode($request->getContent(), true);
+        $constraints = new Assert\Collection([
+            'name' => [new Assert\NotBlank()],
+            'address' => [new Assert\NotBlank()],
+        
+        ]);
+
+        $errors = $this->validator->validate($data, $constraints);
+        if (count($errors) > 0) return new Response($errors);
+
         $name    = $data['name'];
         $address = $data['address'];
 

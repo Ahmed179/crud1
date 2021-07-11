@@ -6,11 +6,12 @@ use App\Repository\RoleRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use JsonSerializable;
 
 /**
  * @ORM\Entity(repositoryClass=RoleRepository::class)
  */
-class Role
+class Role implements JsonSerializable
 {
     /**
      * @ORM\Id
@@ -20,14 +21,14 @@ class Role
     private $id;
 
     /**
-     * @ORM\Column(type="string", length=255)
+     * @ORM\Column(length=255)
      */
     private $name;
 
     /**
-     * @ORM\OneToMany(targetEntity=Employee::class, mappedBy="role")
+     * @ORM\ManyToMany(targetEntity=Employee::class, mappedBy="roles")
      */
-    private $employees;
+    private $employees = [];
 
     public function __construct()
     {
@@ -51,9 +52,6 @@ class Role
         return $this;
     }
 
-    /**
-     * @return Collection|Employee[]
-     */
     public function getEmployees(): Collection
     {
         return $this->employees;
@@ -63,7 +61,7 @@ class Role
     {
         if (!$this->employees->contains($employee)) {
             $this->employees[] = $employee;
-            $employee->setRole($this);
+            $employee->addRole($this);
         }
 
         return $this;
@@ -71,13 +69,19 @@ class Role
 
     public function removeEmployee(Employee $employee): self
     {
-        if ($this->employees->removeElement($employee)) {
-            // set the owning side to null (unless already changed)
-            if ($employee->getRole() === $this) {
-                $employee->setRole(null);
-            }
+        if ($this->employees->contains($employee)) {
+            $this->employees->removeElement($employee);
+            $employee->removeRole($this);
         }
-
+        
         return $this;
+    }
+
+    public function jsonSerialize()
+    {
+        return [
+            "id" => $this->id,
+            "name" => $this->name,
+        ];
     }
 }
